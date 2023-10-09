@@ -1,9 +1,13 @@
-use std::{env, sync::Arc, time::Duration};
+mod nwc;
+
+use std::{env, sync::Arc, time::Duration, str::FromStr};
 use bip39::{Mnemonic, Language};
 use breez_sdk_core::{BreezServices, EnvironmentType, NodeConfig, GreenlightNodeConfig, EventListener, BreezEvent, ReceivePaymentRequest, parse, LnUrlWithdrawResult, ListPaymentsRequest, PaymentTypeFilter};
 use clap::{Parser, Subcommand};
 use dotenv::dotenv;
-use log::{info, error};
+use log::{info, error, warn};
+use nostr_sdk::{prelude::{NostrWalletConnectURI, ToBech32, FromSkStr}, Keys};
+use reqwest::Url;
 use serde::Serialize;
 
 #[tokio::main]
@@ -176,6 +180,13 @@ async fn main() {
             let text = resp.text().await.unwrap();
             info!("{}", text);
         },
+        Commands::NostrWalletConnect => {
+            let (nwc_key, nostr_client_key) = get_nostr_keys();
+            let sdk = connect().await;
+            let nwc = nwc::NostrWalletConnectEndpoint::init_with(sdk, &nostr_client_key).await.unwrap();
+            nwc.publish_text_note("Hello world").await.unwrap();
+            nwc.listen_nwc_requests(&nwc_key).await.unwrap();
+        }
     };
 }
 
@@ -223,6 +234,8 @@ enum Commands {
         #[clap(long, short)]
         prompt: String
     },
+    #[clap(alias = "nwc")]
+    NostrWalletConnect
 }
 
 fn get_env_var(name: &str) -> Result<String, String> {
@@ -291,4 +304,42 @@ pub struct GptRequest {
 pub struct GptMessage {
     pub role: String,
     pub content: String
+}
+
+fn get_nostr_keys() -> (Keys, Keys) {
+    let nwc_key = match get_env_var("NWC_KEY") {
+        Ok(key) => Keys::from_sk_str(&key).unwrap(),
+        Err(_) => {
+            warn!("Could not find NWC_KEY environment variable.");
+            generate_nostr_keys();
+            panic!();
+        },
+    };
+
+    let nostr_client_key = match get_env_var("NOSTR_CLIENT_KEY") {
+        Ok(key) => Keys::from_sk_str(&key).unwrap(),
+        Err(_) => {
+            warn!("Could not find NOSTR_CLIENT_KEY environment variable.");
+            generate_nostr_keys();
+            panic!();
+        },
+    };
+
+    (nwc_key, nostr_client_key)
+}
+
+fn generate_nostr_keys() {
+    let nwc_key = Keys::generate();
+    info!("Set the 'NWC_KEY' environment variable to {}", nwc_key.secret_key().unwrap().to_bech32().unwrap());
+
+    let nostr_client_key = Keys::generate();
+    info!("Set the 'NOSTR_CLIENT_KEY' environment variable to {}", nostr_client_key.secret_key().unwrap().to_bech32().unwrap());
+
+    let nwc_connect_uri = NostrWalletConnectURI {
+        public_key: nostr_client_key.public_key(),
+        secret: nwc_key.secret_key().unwrap(),
+        relay_url: Url::from_str(nwc::RELAY).unwrap(),
+        lud16: None,
+    };
+    info!("Set the NWC connection string in your nostr profile to: '{nwc_connect_uri}'");
 }
