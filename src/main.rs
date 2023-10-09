@@ -4,6 +4,7 @@ use bip39::{Language, Mnemonic};
 use breez_sdk_core::{
     parse, BreezEvent, BreezServices, EnvironmentType, EventListener, GreenlightNodeConfig,
     LnUrlWithdrawRequest, LnUrlWithdrawResult, NodeConfig, ReceivePaymentRequest,
+    SendPaymentRequest,
 };
 use clap::{Parser, Subcommand};
 use dotenv::dotenv;
@@ -92,6 +93,31 @@ async fn main() {
                 }
             }
         }
+        Commands::SendPayment { invoice } => {
+            let sdk = connect().await;
+            let input = match parse(invoice).await {
+                Ok(input) => match input {
+                    breez_sdk_core::InputType::Bolt11 { invoice } => invoice,
+                    _ => {
+                        error!("Invalid input");
+                        return;
+                    }
+                },
+                Err(e) => {
+                    error!("Invalid input: {}", e);
+                    return;
+                }
+            };
+
+            let resp = sdk
+                .send_payment(SendPaymentRequest {
+                    bolt11: input.bolt11,
+                    amount_msat: None,
+                })
+                .await
+                .unwrap();
+            info!("Success. Fee paid (msat): {}", resp.payment.fee_msat);
+        }
     };
 }
 
@@ -126,6 +152,11 @@ enum Commands {
     LnurlWithdraw {
         #[clap(long, short)]
         lnurl: String,
+    },
+    #[clap(alias = "send")]
+    SendPayment {
+        #[clap(long, short)]
+        invoice: String,
     },
 }
 
