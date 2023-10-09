@@ -1,9 +1,9 @@
 use std::{env, sync::Arc, time::Duration};
 use bip39::{Mnemonic, Language};
-use breez_sdk_core::{BreezServices, EnvironmentType, NodeConfig, GreenlightNodeConfig, EventListener, BreezEvent, ReceivePaymentRequest};
+use breez_sdk_core::{BreezServices, EnvironmentType, NodeConfig, GreenlightNodeConfig, EventListener, BreezEvent, ReceivePaymentRequest, parse, LnUrlWithdrawResult};
 use clap::{Parser, Subcommand};
 use dotenv::dotenv;
-use log::info;
+use log::{info, error};
 
 #[tokio::main]
 async fn main() {
@@ -48,6 +48,38 @@ async fn main() {
             let mut s = Default::default();
             std::io::stdin().read_line(&mut s).unwrap();
         },
+        Commands::LnurlWithdraw { lnurl } => {
+            let sdk = connect().await;
+            let input = match parse(lnurl).await {
+                Ok(input) => match input {
+                    breez_sdk_core::InputType::LnUrlWithdraw { data } => data,
+                    _ => {
+                        error!("Invalid input");
+                        return;
+                    }
+                },
+                Err(e) => {
+                    error!("Invalid input: {}", e);
+                    return;
+                }
+            };
+
+            let amount = input.max_withdrawable / 1000;
+            let result = sdk.lnurl_withdraw(
+                input, 
+                amount, 
+                Some(String::from("collecting some funds to play with Breez SDK")))
+                .await
+                .unwrap();
+            match result {
+                LnUrlWithdrawResult::Ok { data: _ } => {
+                    info!("Success!");
+                },
+                LnUrlWithdrawResult::ErrorStatus { data } => {
+                    error!("Error: {}", data.reason)
+                },
+            }
+        },
     };
 }
 
@@ -77,6 +109,11 @@ enum Commands {
         amount_sats: u64,
         #[clap(long, short)]
         description: String
+    },
+    #[clap(alias = "withdraw")]
+    LnurlWithdraw {
+        #[clap(long, short)]
+        lnurl: String
     },
 }
 
