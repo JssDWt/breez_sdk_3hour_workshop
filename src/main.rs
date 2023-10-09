@@ -1,6 +1,6 @@
 use std::{env, sync::Arc, time::Duration};
 use bip39::{Mnemonic, Language};
-use breez_sdk_core::{BreezServices, EnvironmentType, NodeConfig, GreenlightNodeConfig, EventListener, BreezEvent, ReceivePaymentRequest, parse, LnUrlWithdrawResult};
+use breez_sdk_core::{BreezServices, EnvironmentType, NodeConfig, GreenlightNodeConfig, EventListener, BreezEvent, ReceivePaymentRequest, parse, LnUrlWithdrawResult, ListPaymentsRequest, PaymentTypeFilter};
 use clap::{Parser, Subcommand};
 use dotenv::dotenv;
 use log::{info, error};
@@ -99,6 +99,24 @@ async fn main() {
             let payment = sdk.send_payment(input.bolt11, None).await.unwrap();
             info!("Success. Fee paid (msat): {}", payment.fee_msat);
         },
+        Commands::ListPayments => {
+            let sdk = connect().await;
+            let payments = sdk.list_payments(ListPaymentsRequest{
+                filter:PaymentTypeFilter::All, 
+                from_timestamp: None, 
+                to_timestamp: None, 
+                include_failures: None 
+            }).await.unwrap();
+            for payment in payments.iter() {
+                info!(
+                    "- type: {:?}\n  description: {:?}\n  amount_msat: {}\n  fee_msat: {}", 
+                    payment.payment_type,
+                    payment.description,
+                    payment.amount_msat,
+                    payment.fee_msat
+                );
+            }
+        }
     };
 }
 
@@ -139,6 +157,8 @@ enum Commands {
         #[clap(long, short)]
         invoice: String
     },
+    #[clap(alias = "list")]
+    ListPayments,
 }
 
 fn get_env_var(name: &str) -> Result<String, String> {
