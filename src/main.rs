@@ -4,6 +4,7 @@ use breez_sdk_core::{BreezServices, EnvironmentType, NodeConfig, GreenlightNodeC
 use clap::{Parser, Subcommand};
 use dotenv::dotenv;
 use log::{info, error};
+use serde::Serialize;
 
 #[tokio::main]
 async fn main() {
@@ -116,7 +117,65 @@ async fn main() {
                     payment.fee_msat
                 );
             }
-        }
+        },
+        Commands::ChatGpt { prompt } => {
+            let sdk = connect().await;
+            let url = "http://localhost:8000/openai/v1/chat/completions";
+            info!("Calling http 402 API without a token.");
+            
+            let client = reqwest::ClientBuilder::new().build().unwrap();
+            let req = &GptRequest{
+                model: String::from("gpt-3.5-turbo"),
+                messages: vec![
+                    GptMessage{
+                        role: String::from("user"),
+                        content: prompt.clone()
+                    }
+                ]
+            };
+            let mut resp = client.post(url).json(&req).send()
+              .await
+              .unwrap();
+            info!("Response status is {}", resp.status());
+            if resp.status() == 402 {
+                let l402header = resp.headers()
+                    .get("WWW-Authenticate")
+                    .expect("server did not return WWW-Authenticate header in 402 response.")
+                    .to_str()
+                    .unwrap();
+
+                info!("Got WWW-Authenticate header: {}", l402header);
+                let re = regex::Regex::new(r#"^L402 (token|macaroon)=\"(?<token>.*)\", invoice=\"(?<invoice>.*)\""#).unwrap();
+                let caps = re.captures(l402header).expect("WWW-Authenticate header is not a valid L402");
+                let token = caps["token"].to_string();
+                let invoice = caps["invoice"].to_string();
+
+                info!("Paying lightning invoice to get access to the API: {}", invoice);
+                let payresult = sdk
+                    .send_payment(invoice, None)
+                    .await
+                    .unwrap();
+                let lnpayresult = match payresult.details {
+                    breez_sdk_core::PaymentDetails::Ln { data } => data,
+                    _ => unreachable!(),
+                };
+
+                let header = format!("L402 {}:{}", token, lnpayresult.payment_preimage);
+                info!("Calling http 402 api again, now with header Authorization {}", header);
+                resp = client
+                    .post(url)
+                    .header("Authorization", header)
+                    .json(&req)
+                    .send()
+                    .await
+                    .unwrap();
+            } 
+
+            let status = resp.status();
+            info!("Got Response. Status {}", status);
+            let text = resp.text().await.unwrap();
+            info!("{}", text);
+        },
     };
 }
 
@@ -159,6 +218,11 @@ enum Commands {
     },
     #[clap(alias = "list")]
     ListPayments,
+    #[clap(alias = "gpt")]
+    ChatGpt {
+        #[clap(long, short)]
+        prompt: String
+    },
 }
 
 fn get_env_var(name: &str) -> Result<String, String> {
@@ -215,4 +279,16 @@ impl EventListener for AppEventListener {
             _ => ()
         }
     }
+}
+
+#[derive(Serialize)]
+pub struct GptRequest {
+    pub model: String,
+    pub messages: Vec<GptMessage>
+}
+
+#[derive(Serialize)]
+pub struct GptMessage {
+    pub role: String,
+    pub content: String
 }
