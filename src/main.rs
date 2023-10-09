@@ -26,6 +26,11 @@ async fn main() {
             info!("Generated mnemonic: {mnemonic}");
             info!("Set the environment variable 'MNEMONIC', and run another command.");
         }
+        Commands::NodeInfo => {
+            let sdk = connect().await;
+            let info = sdk.node_info().unwrap();
+            info!("{:?}", info);
+        }
     };
 }
 
@@ -47,6 +52,8 @@ struct Cli {
 enum Commands {
     #[clap(alias = "mnemonic")]
     GenerateMnemonic,
+    #[clap(alias = "info")]
+    NodeInfo,
 }
 
 fn get_env_var(name: &str) -> Result<String, String> {
