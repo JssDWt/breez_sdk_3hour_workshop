@@ -1,6 +1,7 @@
 use bip39::{Language, Mnemonic};
 use breez_sdk_core::{
     BreezEvent, BreezServices, EnvironmentType, EventListener, GreenlightNodeConfig, NodeConfig,
+    ReceivePaymentRequest,
 };
 use clap::{Parser, Subcommand};
 use dotenv::dotenv;
@@ -31,6 +32,31 @@ async fn main() {
             let info = sdk.node_info().unwrap();
             info!("{:?}", info);
         }
+        Commands::ReceivePayment {
+            amount_sats,
+            description,
+        } => {
+            let sdk = connect().await;
+            let invoice = sdk
+                .receive_payment(ReceivePaymentRequest {
+                    amount_msat: *amount_sats * 1000,
+                    description: description.clone(),
+                    cltv: None,
+                    expiry: None,
+                    opening_fee_params: None,
+                    preimage: None,
+                    use_description_hash: None,
+                })
+                .await
+                .unwrap();
+            info!(
+                "Invoice: {}, expected opening fee (msat): {:?}",
+                invoice.ln_invoice.bolt11, invoice.opening_fee_msat
+            );
+            info!("Waiting for invoice to be paid. Press <enter> to exit.");
+            let mut s = Default::default();
+            std::io::stdin().read_line(&mut s).unwrap();
+        }
     };
 }
 
@@ -54,6 +80,13 @@ enum Commands {
     GenerateMnemonic,
     #[clap(alias = "info")]
     NodeInfo,
+    #[clap(alias = "receive")]
+    ReceivePayment {
+        #[clap(long, short)]
+        amount_sats: u64,
+        #[clap(long, short)]
+        description: String,
+    },
 }
 
 fn get_env_var(name: &str) -> Result<String, String> {
@@ -101,7 +134,10 @@ struct AppEventListener {}
 impl EventListener for AppEventListener {
     fn on_event(&self, e: BreezEvent) {
         match e {
-            _ => return,
+            BreezEvent::InvoicePaid { details } => {
+                info!("invoice got paid: {}", details.bolt11)
+            }
+            _ => (),
         }
     }
 }
