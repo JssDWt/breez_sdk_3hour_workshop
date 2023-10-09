@@ -13,10 +13,27 @@ Next to the basic functionality, there's two examples of how to use the SDK in a
 
 ## Prerequisites
 ### Rust
-Make sure you have Rust installed on your system. Find instructions to install Rust [here](https://www.rust-lang.org/tools/install). For unix-like systems the easiest to install rust is:
+Make sure you have Rust installed on your system. Find instructions to install Rust [here](https://www.rust-lang.org/tools/install). 
+
+For unix-like systems the easiest to install rust is:
 
 ```bash
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+```
+
+### protoc
+In order to compile Breez SDK, you need a recent version `protoc` installed. Find instructions to install protoc [here](https://grpc.io/docs/protoc-installation/).
+
+For linux
+```bash
+apt install -y protobuf-compiler
+protoc --version  # Ensure compiler version is 3+
+```
+
+For mac
+```zsh
+brew install protobuf
+protoc --version  # Ensure compiler version is 3+
 ```
 
 ## Getting started
