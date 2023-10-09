@@ -1,4 +1,4 @@
-# Exercise 6: L402 client
+# Exercise 7: L402 client
 The Breez SDK allows you to interact with the lightning network with ease. That allows you to focus on functionality, rather than spending a lot of time figuring out how to interact with the lightning network. In this exercise, you will focus on functionality around paid apis.
 
 The [L402 protocol](https://github.com/lightning/blips/blob/d2a8c19ec6f49677d942d1c03f3ab0a3362e7b39/blip-0026.md) is a protocol around the HTTP status code 402 (payment required). A HTTP API can be wrapped with logic to require payments to complete API calls. 
@@ -64,4 +64,4 @@ info!("Got lightning invoice to get access to the API: {}", invoice);
 ```
 
 ## Done?
-Go to the [next exercise](./07-nostr-wallet-connect.md).
+Go to the [next exercise](./08-nostr-wallet-connect.md).

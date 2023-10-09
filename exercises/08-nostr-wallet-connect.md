@@ -1,4 +1,4 @@
-# Exercise 7: Nostr Wallet Connect
+# Exercise 8: Nostr Wallet Connect
 The Breez SDK allows you to interact with the lightning network with ease. That allows you to focus on functionality, rather than spending a lot of time figuring out how to interact with the lightning network. In this exercise, you will focus on functionality around nostr.
 
 ## Introduction

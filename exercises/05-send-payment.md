@@ -7,4 +7,4 @@ In this exercise, you will pay an invoice of another lightning node. You can eit
 - `None` can be passed for the `amount` parameter. The amount parameter is only used for amountless invoices. In this case we will pay an invoice with an amount.
 
 ## Done?
-Go to the [next exercise](./06-L402-client.md).
+Go to the [next exercise](./06-list-payments.md).
