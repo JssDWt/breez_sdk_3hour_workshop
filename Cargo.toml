@@ -6,14 +6,14 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-breez-sdk-core = { git = "https://github.com/breez/breez-sdk", rev = "0.2.5" }
-clap = { version = "4.4.6", features = ["derive"] }
+breez-sdk-core = { git = "https://github.com/breez/breez-sdk", rev = "0.2.14" }
+clap = { version = "4.4.18", features = ["derive"] }
 stderrlog = "0.5.4"
 log = "0.4.20"
 dotenv = "0.15.0"
 bip39 = { version = "2.0.0", features = ["rand"] }
-tokio = "1.32.0"
-reqwest = "0.11.22"
-regex = "1.9.6"
-serde = "1.0.188"
-nostr-sdk = { git = "https://github.com/rust-nostr/nostr", features = ["nip19", "nip47"], tag = "v0.23.0" }
+tokio = "1.35.1"
+reqwest = "0.11.23"
+regex = "1.10.3"
+serde = "1.0.195"
+nostr-sdk = { git = "https://github.com/rust-nostr/nostr", features = ["nip47"], tag = "v0.27.0" }
