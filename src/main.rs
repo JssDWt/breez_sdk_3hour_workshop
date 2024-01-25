@@ -22,7 +22,12 @@ async fn main() {
     let cli = Cli::parse();
     stderrlog::new()
         .show_level(false)
-        .modules(vec!["breez_sdk_3hour_workshop", "breez_sdk_core"])
+        .modules(vec![
+            "breez_sdk_3hour_workshop",
+            "breez_sdk_core",
+            "gl_client",
+            "lightning_signer",
+        ])
         .verbosity(match cli.verbose {
             true => stderrlog::LogLevelNum::Debug,
             false => stderrlog::LogLevelNum::Info,
