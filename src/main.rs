@@ -1,8 +1,8 @@
-use std::env;
-use bip39::{Mnemonic, Language};
+use bip39::{Language, Mnemonic};
 use clap::{Parser, Subcommand};
 use dotenv::dotenv;
 use log::info;
+use std::env;
 
 #[tokio::main]
 async fn main() {
@@ -10,13 +10,10 @@ async fn main() {
     let cli = Cli::parse();
     stderrlog::new()
         .show_level(false)
-        .modules(vec![
-            "breez_sdk_3hour_workshop", 
-            "breez_sdk_core",
-        ])
+        .modules(vec!["breez_sdk_3hour_workshop", "breez_sdk_core"])
         .verbosity(match cli.verbose {
             true => stderrlog::LogLevelNum::Debug,
-            false => stderrlog::LogLevelNum::Info
+            false => stderrlog::LogLevelNum::Info,
         })
         .init()
         .unwrap();
@@ -54,10 +51,10 @@ fn get_env_var(name: &str) -> Result<String, String> {
         Ok(v) => v,
         Err(_) => return Err("variable not set".to_string()),
     };
-    
+
     if v.is_empty() {
         return Err("variable is empty".to_string());
     }
-    
+
     Ok(v)
 }
